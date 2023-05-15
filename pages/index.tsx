@@ -1,65 +1,114 @@
-import Head from 'next/head'
-import Image from 'next/image'
+import Head from "next/head";
+import Image from "next/image";
+import Link from "next/link";
+import styles from "@/pages/index.module.css";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-import styles from '@/pages/index.module.css'
+// routes
+import { countryApi } from "../utils/api_routes";
 
 export default function Home() {
-  return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+	// states
+	const [data, setData] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(false);
 
-      <main>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+	// styles
+	const { countryCard } = styles;
 
-        <p className={styles.description}>
-          Get started by editing <code>pages/index.js</code>
-        </p>
+	useEffect(() => {
+		axios
+			.get(countryApi)
+			.then((el) => {
+				console.log(el.data);
+				sessionStorage.setItem("countries", JSON.stringify(el.data));
+				setData(el.data);
+				setLoading(false);
+			})
+			.catch((err) => {
+				console.log(err);
+				setError(true);
+			});
+	}, []);
 
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
+	useEffect(() => {
+		let test = data.map((el) => el.borders);
+		console.log("test: ", test);
+	}, [data]);
 
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
+	if (error) {
+		return (
+			<h1>
+				There was an error, please reload or try again... if problem persists
+				please contact company tech support
+			</h1>
+		);
+	}
 
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
+	if (loading) {
+		return <h1>Loading please wait...</h1>;
+	}
 
-          <a href="https://vercel.com/new" className={styles.card}>
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+	return (
+		<div>
+			<Head>
+				<title>Country App by Victor Sarov</title>
+				<link rel="icon" href="/favicon.ico" />
+			</Head>
+			<h1>Countries App</h1>
+			{/* <Link href={"/foo"}>go to Foo page</Link> */}
+			{data?.map((el) => {
+				const { name, population, flags, capital, borders } = el;
+				const { common } = name;
+				const { alt, svg } = flags;
 
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
-    </div>
-  )
+				const queryData = {
+					pathname: `/country`,
+					query: {
+						countryName: common,
+						countryBorders: borders,
+					},
+				};
+
+				// console.log(capital);
+
+				return (
+					<div key={common} style={{ width: "50vw" }}>
+						<Link href={queryData}>
+							<fieldset>
+								<legend>Country</legend>
+								<div>
+									{/* Flag and Details */}
+									<div>
+										<Image
+											src={svg}
+											alt={alt ? alt : `flag of a ${common}`}
+											width={100}
+											height={100}
+										></Image>
+										{/* details */}
+										<div>
+											<h3>Country Name: {common}</h3>
+											{capital ? <div>{capital[0]}</div> : null}
+										</div>
+									</div>
+									{/* population */}
+									<div>
+										Population:{" "}
+										{
+											(population as number)
+												.toFixed(1)
+												.replace(/\d(?=(\d{3})+\.)/g, "$&,")
+												.split(".")[0]
+										}
+									</div>
+								</div>
+							</fieldset>
+						</Link>
+					</div>
+				);
+			})}
+		</div>
+	);
 }
